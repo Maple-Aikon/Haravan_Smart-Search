@@ -1,0 +1,264 @@
+<div id='search_suggestion'>
+	<div id='search_top'>
+
+	</div>
+	<div id='search_bottom'>
+		<a class='show_more' href='#'>Hiển thị tất cả kết quả cho "<span></span>"</a>
+	</div>
+</div>
+<style>
+	#search_suggestion {
+	padding: 0 0 10px 0;
+	color: #555;
+	position: absolute;
+	top: 0;
+	z-index: 9999;
+	min-width: 300px;
+	max-width: 600px;
+	background-color: #f8f8f8;
+	display: none;
+	}
+	#search_suggestion h3 {
+	margin: 0;
+	font-size: 16px;
+	font-weight: bold;
+	background-color: #eaeaea;
+	padding: 5px;
+	}
+	#search_suggestion ul {
+	padding: 0;
+	}
+	#search_suggestion ul li {
+	background-color: #fff;
+	padding: 5px;
+	font-size: 14px;
+	}
+	#search_suggestion ul li:hover {
+	background-color: #f2f2f2;
+	}
+	#search_suggestion ul li a {
+	color: #787878;
+	display: block;
+	overflow: hidden;
+	}
+	#search_suggestion ul li .item_image {
+	text-align: center;
+	float: left;
+	width: 50px;
+	margin-right: 5px;
+	}
+	#search_suggestion ul li .item_detail {
+	overflow: hidden;
+	}
+	#search_suggestion ul li .item_title h4 {
+	text-transform: none;
+	font-size: 14px;
+	font-weight: bold;
+	}
+	#search_suggestion ul li .item_price ins {
+	font-weight: bold;
+	text-decoration: none;
+	display: inline-block;
+	margin-right: 5px;
+	}
+	#search_top {
+	max-height: 400px;
+	overflow-y: auto;
+	}
+	#search_bottom {
+	text-align: center;
+	padding-top: 10px;
+	}
+	#search_bottom a {
+	color: #444;
+	text-decoration: underline;
+	font-weight: bold;
+	}
+	#search_bottom a span {
+	color: #ff0000;
+	}
+
+</style>
+
+<script>
+"use_strict";
+
+var settings = {
+	articleLimit: 5,
+	productLimit: 5,
+	showDescription: '0'
+};
+
+var suggestionWrap = document.getElementById('search_suggestion');
+var searchTop = document.getElementById('search_top');
+var searchBottom = document.getElementById('search_bottom');
+
+
+var loadResult = function(data, type) {
+	searchTop.innerHTML = '';
+	var articleLimit = parseInt(settings.articleLimit);
+	var productLimit = parseInt(settings.productLimit);
+	var showDescription = settings.showDescription;
+
+	var dataJson = JSON.parse(data);
+	if(dataJson.results != undefined) {
+		searchTop.style.display = 'block';
+		var searchHeading = document.createElement('h3');
+		if(type == 'product') {
+			searchHeading.innerHTML = 'Sản phẩm';
+		}
+		else {
+			searchHeading.innerHTML = 'Bài viết';
+		}
+		searchTop.appendChild(searchHeading);
+
+		var searchList = document.createElement('ul');
+
+		var resultList = [];
+		if(type == 'product') {
+			for(var i = 0; i < productLimit; i++) {
+				resultList[i] = dataJson.results[i];
+			}
+		}
+		else if(type == 'article') {
+			for(var i = 0; i < articleLimit; i++) {
+				resultList[i] = dataJson.results[i];
+			}
+		}
+		//dataJson.results.forEach(function(item, index) {
+		resultList.forEach(function(item, index) {
+			// image
+			var image = document.createElement('img');
+			image.setAttribute('src', item.thumbnail);
+			var imageDiv = document.createElement('div');
+			imageDiv.classList.add('item_image');
+			imageDiv.appendChild(image);
+
+			// title
+			var titleHeading =  document.createElement('h4');
+			titleHeading.innerHTML = item.title;
+			var titleDiv = document.createElement('div');
+			titleDiv.classList.add('item_title');
+			titleDiv.appendChild(titleHeading);
+			var detailDiv = document.createElement('div');
+			detailDiv.classList.add('item_detail')
+			detailDiv.appendChild(titleDiv);
+
+			if(type == 'product') {
+				// price
+				var priceDiv = document.createElement('div');
+				priceDiv.classList.add('item_price');
+				priceDiv.innerHTML = item.price;
+				if(item.compare_at_price !== undefined) {
+					priceDiv.innerHTML += item.compare_at_price
+				}
+				detailDiv.appendChild(priceDiv);
+			}
+
+			// short description
+			if(type == 'product' && showDescription == '1') {
+				var descriptionDiv = document.createElement('div');
+				descriptionDiv.classList.add('item_description');
+				var descriptionText = document.createTextNode(item.description);
+				descriptionDiv.appendChild(descriptionText);
+				detailDiv.appendChild(descriptionDiv);
+			}
+			// append to li
+			var productLink = document.createElement('a');
+			productLink.setAttribute('href', item.url);
+
+			productLink.appendChild(imageDiv);
+			productLink.appendChild(detailDiv);
+
+			var searchItem = document.createElement('li');
+			searchItem.appendChild(productLink);
+
+			searchList.appendChild(searchItem);
+		})
+
+		searchTop.appendChild(searchList);
+	}
+	else {
+console.log('none')
+		searchTop.style.display = 'none'
+	}
+}
+
+var loadAjax = function(q) {
+	if(settings.searchArticle == '1') {
+		loadArticle(q);
+	}
+	loadProduct(q);
+}
+
+var loadProduct = function(q) {
+	var xhttp = new XMLHttpRequest();
+	xhttp.onreadystatechange = function() {
+		if(this.readyState == 4 && this.status == 200) {
+			loadResult(this.responseText, 'product')
+		}
+	}
+	xhttp.open('GET', '/search?type=product&q=' + q + '&view=json', true);
+	xhttp.send();
+}
+
+var loadArticle = function(q) {
+	var xhttp = new XMLHttpRequest();
+	xhttp.onreadystatechange = function() {
+		if(this.readyState == 4 && this.status == 200) {
+			loadResult(this.responseText, 'article')
+		}
+	}
+	xhttp.open('GET', '/search?type=article&q=' + q + '&view=json', true);
+	xhttp.send();
+}
+
+var searchForm = document.querySelectorAll('form[action="/search"]');
+
+var getPos = function(el) {
+	for (var lx=0, ly=0; el != null; lx += el.offsetLeft, ly += el.offsetTop, el = el.offsetParent);
+	return {x: lx,y: ly};
+}
+
+var initSuggestion = function(el) {
+	var parentTop = el.offsetParent.offsetTop;
+	var position = getPos(el);
+	var searchInputHeight = el.offsetHeight;
+	var searchInputWidth = el.offsetWidth;
+	var searchInputX = position.x;
+	var searchInputY = position.y;
+	var suggestionPositionX = searchInputX;
+	var suggestionPositionY = searchInputY + searchInputHeight;
+
+	suggestionWrap.style.left = suggestionPositionX + 'px';
+	suggestionWrap.style.top = suggestionPositionY + 'px';
+	suggestionWrap.style.width = searchInputWidth + 'px';
+}
+
+if(searchForm.length > 0) {
+	searchForm.forEach(function(form, i) {
+		var searchInput = form.querySelector('[name=q]');
+		searchInput.addEventListener('keyup', function() {
+
+			// locate search suggestion div
+			initSuggestion(this);
+
+			// Search processing
+			var q = this.value;
+
+			if(q === '' || q === null) {
+				suggestionWrap.style.display = 'none';
+			}
+			else {
+				suggestionWrap.style.display = 'block';
+				searchTop.innerHTML = '';
+				loadAjax(q);
+				// show all search results
+				var showMore = searchBottom.getElementsByClassName('show_more')[0];
+				showMore.setAttribute('href', '/search?q=' + q);
+				showMore.querySelector('span').innerHTML = q;
+			}
+		})
+	})
+}
+</script>
